@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harshal | Professional Video Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Updated Lucide Icons with proper initialization -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+
+        :root {
+            --primary: #3b82f6;
+            --accent: #8b5cf6;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #050505;
+            color: #ffffff;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Fixed Visibility Issues: Ensure elements are visible if JS fails, 
+           but still support the reveal animation */
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: opacity, transform;
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .animated-blob {
+            position: fixed;
+            width: 80vw;
+            height: 80vw;
+            filter: blur(100px);
+            z-index: -1;
+            opacity: 0.15;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .blob-1 {
+            background: radial-gradient(circle, #3b82f6 0%, transparent 70%);
+            top: -10%;
+            left: -10%;
+            animation: float 20s infinite alternate ease-in-out;
+        }
+
+        .blob-2 {
+            background: radial-gradient(circle, #8b5cf6 0%, transparent 70%);
+            bottom: -10%;
+            right: -10%;
+            animation: float 25s infinite alternate-reverse ease-in-out;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(10%, 10%) scale(1.1); }
+        }
+
+        .video-container {
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            aspect-ratio: 9/16;
+            background: #111;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            /* Add border to mimic phone edges slightly */
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .mute-toggle {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            z-index: 20;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .mute-toggle:hover {
+            transform: scale(1.1);
+            background: rgba(59, 130, 246, 0.8);
+            border-color: rgba(59, 130, 246, 1);
+        }
+
+        .hero-image-frame {
+            position: relative;
+            padding: 10px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 28px;
+            transform: rotate(2deg);
+            box-shadow: 0 20px 50px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #050505;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #222;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #333;
+        }
+
+        select option {
+            background: #111;
+            color: white;
+        }
+
+        /* Mobile Menu Animation */
+        #mobile-nav {
+            transition: all 0.3s ease-in-out;
+            transform: translateY(-20px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        #mobile-nav.open {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: all;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Animated Background Backgrounds -->
+    <div class="animated-blob blob-1"></div>
+    <div class="animated-blob blob-2"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-[100] px-4 md:px-6 py-4">
+        <div class="max-w-7xl mx-auto flex justify-between items-center glass-card px-6 md:px-8 py-3 md:py-4 relative">
+            <div class="text-xl md:text-2xl font-extrabold tracking-tighter">H<span class="text-blue-500">.</span></div>
+            
+            <!-- Desktop Nav -->
+            <div class="hidden md:flex gap-10 font-semibold text-xs uppercase tracking-[0.2em] text-gray-400">
+                <a href="#home" class="hover:text-white transition-colors">Home</a>
+                <a href="#work" class="hover:text-white transition-colors">Work</a>
+                <a href="#feedback" class="hover:text-white transition-colors">Clients</a>
+                <a href="#hire" class="hover:text-blue-400 transition-colors text-blue-500">Hire Me</a>
+            </div>
+
+            <!-- Mobile Menu Toggle -->
+            <div class="md:hidden">
+                <button id="menu-btn" class="p-2 text-white">
+                    <i data-lucide="menu" id="menu-icon"></i>
+                </button>
+            </div>
+
+            <!-- Mobile Nav Dropdown -->
+            <div id="mobile-nav" class="absolute top-full left-0 right-0 mt-4 mx-0 md:hidden glass-card p-6 flex flex-col gap-6 text-center font-bold">
+                <a href="#home" class="mobile-link text-lg">Home</a>
+                <a href="#work" class="mobile-link text-lg">Work</a>
+                <a href="#feedback" class="mobile-link text-lg">Clients</a>
+                <a href="#hire" class="mobile-link text-blue-500 text-lg">Hire Me</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="min-h-screen flex flex-col justify-center items-center px-6 pt-24 pb-12">
+        <div class="max-w-7xl mx-auto grid md:grid-cols-2 gap-10 md:gap-16 items-center">
+            <div class="order-2 md:order-1 reveal text-center md:text-left">
+                <h2 class="text-blue-500 font-bold tracking-[0.2em] uppercase text-xs md:text-sm mb-4 md:mb-6">4 Years of Experience</h2>
+                <h1 class="text-5xl md:text-8xl font-extrabold mb-6 md:mb-8 leading-[1.1] md:leading-[0.9] tracking-tight">
+                    I am <span class="gradient-text">Harshal</span>
+                </h1>
+                <p class="text-gray-400 text-base md:text-xl max-w-lg mb-8 md:mb-10 leading-relaxed mx-auto md:mx-0">
+                    Professional Video Editor based in <span class="text-white font-semibold">Pune, India</span>. 
+                    Crafting viral Reels, cinematic Ads, and high-conversion scripts using After Effects.
+                </p>
+                <div class="flex flex-wrap justify-center md:justify-start gap-3">
+                    <div class="flex items-center gap-2 md:gap-3 glass-card px-4 md:px-5 py-2 md:py-3 text-xs md:text-sm font-semibold">
+                        <img src="ae logo.png" class="w-5 h-5 md:w-6 md:h-6" alt="AE" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/c/cb/Adobe_After_Effects_CC_icon.svg'">
+                        After Effects
+                    </div>
+                    <div class="flex items-center gap-2 md:gap-3 glass-card px-4 md:px-5 py-2 md:py-3 text-xs md:text-sm font-semibold">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Adobe_Photoshop_CC_icon.svg" class="w-5 h-5 md:w-6 md:h-6" alt="PS">
+                        Photoshop
+                    </div>
+                </div>
+            </div>
+            
+            <div class="order-1 md:order-2 flex justify-center reveal">
+                <div class="hero-image-frame w-56 h-72 md:w-96 md:h-[500px]">
+                    <div class="w-full h-full rounded-[20px] md:rounded-[24px] overflow-hidden bg-zinc-900 flex items-center justify-center transform -rotate-2">
+                        <!-- Placeholder applied to ensure it doesn't look broken if me.jpg is missing -->
+                        <img src="me.jpg" alt="Harshal" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop'">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section class="py-16 md:py-24 px-6">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <div class="glass-card p-6 md:p-10 text-center reveal">
+                <div class="w-12 h-12 md:w-16 md:h-16 bg-pink-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6">
+                    <i data-lucide="smartphone" class="w-6 h-6 md:w-8 md:h-8 text-pink-500"></i>
+                </div>
+                <h3 class="font-bold text-lg md:text-xl">Viral Reels</h3>
+                <p class="text-gray-500 mt-2 text-xs md:text-sm">9:16 optimized edits</p>
+            </div>
+            <div class="glass-card p-6 md:p-10 text-center reveal" style="transition-delay: 100ms;">
+                <div class="w-12 h-12 md:w-16 md:h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6">
+                    <i data-lucide="play" class="w-6 h-6 md:w-8 md:h-8 text-red-500"></i>
+                </div>
+                <h3 class="font-bold text-lg md:text-xl">Long Form</h3>
+                <p class="text-gray-500 mt-2 text-xs md:text-sm">YouTube & Courses</p>
+            </div>
+            <div class="glass-card p-6 md:p-10 text-center reveal" style="transition-delay: 200ms;">
+                <div class="w-12 h-12 md:w-16 md:h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6">
+                    <i data-lucide="megaphone" class="w-6 h-6 md:w-8 md:h-8 text-blue-500"></i>
+                </div>
+                <h3 class="font-bold text-lg md:text-xl">High-end Ads</h3>
+                <p class="text-gray-500 mt-2 text-xs md:text-sm">Conversion focused</p>
+            </div>
+            <div class="glass-card p-6 md:p-10 text-center reveal" style="transition-delay: 300ms;">
+                <div class="w-12 h-12 md:w-16 md:h-16 bg-purple-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6">
+                    <i data-lucide="pen-tool" class="w-6 h-6 md:w-8 md:h-8 text-purple-500"></i>
+                </div>
+                <h3 class="font-bold text-lg md:text-xl">Scripts</h3>
+                <p class="text-gray-500 mt-2 text-xs md:text-sm">Hook-based writing</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Work Section - UPDATED TO 3 REELS -->
+    <section id="work" class="py-16 md:py-24 px-6 bg-zinc-950/30">
+        <div class="max-w-7xl mx-auto">
+            <div class="mb-12 md:mb-20 reveal text-center md:text-left">
+                <h2 class="text-4xl md:text-5xl font-extrabold mb-4">Work <span class="text-blue-500">Showcase</span></h2>
+                <div class="h-1 w-20 md:w-24 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full mx-auto md:mx-0"></div>
+                <p class="text-gray-400 mt-6 max-w-2xl mx-auto md:mx-0">A collection of my best performing Instagram Reels and YouTube Shorts.</p>
+            </div>
+
+            <!-- Restricted max-width to 5xl so the 3 reels look like perfect phone sizes on desktop -->
+            <div class="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-10">
+                
+                <!-- Reel 1 -->
+                <div class="video-container reveal">
+                    <video loop muted autoplay playsinline>
+                        <source src="time.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <button class="mute-toggle" onclick="toggleMute(this)" aria-label="Unmute video">
+                        <i data-lucide="volume-x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <!-- Reel 2 -->
+                <div class="video-container reveal" style="transition-delay: 150ms;">
+                    <video loop muted autoplay playsinline>
+                        <source src="time2.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <button class="mute-toggle" onclick="toggleMute(this)" aria-label="Unmute video">
+                        <i data-lucide="volume-x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <!-- Reel 3 -->
+                <div class="video-container reveal" style="transition-delay: 300ms;">
+                    <video loop muted autoplay playsinline>
+                        <source src="time3.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <button class="mute-toggle" onclick="toggleMute(this)" aria-label="Unmute video">
+                        <i data-lucide="volume-x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- See More Button -->
+            <div class="mt-16 text-center reveal">
+                <a href="https://drive.google.com/drive/folders/18wrQGXTA6kXCqg38jNOKMuIAWz9hcnm1?usp=sharing" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 py-4 px-10 bg-white/10 border border-white/20 rounded-full font-bold text-lg md:text-xl hover:bg-white/20 hover:border-blue-500 hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] transition-all transform hover:-translate-y-1 backdrop-blur-md">
+                    See More of My Work <i data-lucide="external-link" class="w-5 h-5"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Feedback Section -->
+    <section id="feedback" class="py-16 md:py-24 px-6">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-center mb-12 md:mb-16 reveal">Trusted By <span class="gradient-text">Leading Creators</span></h2>
+            
+            <div class="grid md:grid-cols-3 gap-6 md:gap-8">
+                <div class="glass-card p-6 md:p-10 reveal">
+                    <div class="flex gap-1 text-yellow-500 mb-6">
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                    </div>
+                    <p class="text-gray-300 italic mb-8 text-base md:text-lg leading-relaxed">"Harshal's attention to detail in motion graphics is insane. He took our scripts and turned them into high-converting ads."</p>
+                    <div class="flex items-center gap-4 border-t border-white/10 pt-6">
+                        <img src="buzzscript.png" alt="BuzzScript" class="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover shadow-lg" onerror="this.src='https://ui-avatars.com/api/?name=Buzz+Script&background=random'">
+                        <div>
+                            <span class="block font-bold text-sm md:text-base">BuzzScript</span>
+                            <span class="text-[10px] md:text-xs text-gray-500 uppercase tracking-widest">Agency Partner</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 md:p-10 reveal" style="transition-delay: 200ms;">
+                    <div class="flex gap-1 text-yellow-500 mb-6">
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                    </div>
+                    <p class="text-gray-300 italic mb-8 text-base md:text-lg leading-relaxed">"The energy he brings to reels is exactly what creators need. Professional, fast, and creative with transitions."</p>
+                    <div class="flex items-center gap-4 border-t border-white/10 pt-6">
+                        <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center font-bold text-lg md:text-xl shadow-lg">I</div>
+                        <div>
+                            <span class="block font-bold text-sm md:text-base">Ishita Mittal</span>
+                            <span class="text-[10px] md:text-xs text-gray-500 uppercase tracking-widest">Content Creator</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 md:p-10 reveal" style="transition-delay: 400ms;">
+                    <div class="flex gap-1 text-yellow-500 mb-6">
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                    </div>
+                    <p class="text-gray-300 italic mb-8 text-base md:text-lg leading-relaxed">"One of the few editors who understands pacing and sound design. Highly recommended for premium long-form content."</p>
+                    <div class="flex items-center gap-4 border-t border-white/10 pt-6">
+                        <img src="MATÈYA.png" alt="MATÈYA" class="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover shadow-lg" onerror="this.src='https://ui-avatars.com/api/?name=Mateya&background=random'">
+                        <div>
+                            <span class="block font-bold text-sm md:text-base">MATÈYA</span>
+                            <span class="text-[10px] md:text-xs text-gray-500 uppercase tracking-widest">Brand</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Hire Me Form -->
+    <section id="hire" class="py-16 md:py-24 px-6 relative">
+        <div class="max-w-4xl mx-auto glass-card p-6 md:p-16 reveal border-t-2 border-blue-500/30">
+            <div class="text-center mb-8 md:mb-12">
+                <h2 class="text-4xl md:text-5xl font-extrabold mb-4">Start a <span class="text-blue-500">Project</span></h2>
+                <p class="text-gray-400 text-sm md:text-base">Clicking the button will open WhatsApp to discuss your project.</p>
+            </div>
+            
+            <form id="contactForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+                <div class="flex flex-col gap-2 md:gap-3">
+                    <label class="text-[10px] md:text-xs font-bold uppercase tracking-widest text-gray-500 ml-2">Full Name</label>
+                    <input type="text" id="name" placeholder="e.g. Rahul Sharma" class="p-4 md:p-5 rounded-2xl w-full bg-white/5 border border-white/10 text-white focus:outline-none focus:border-blue-500 transition-all" required>
+                </div>
+                <div class="flex flex-col gap-2 md:gap-3">
+                    <label class="text-[10px] md:text-xs font-bold uppercase tracking-widest text-gray-500 ml-2">Email Address</label>
+                    <input type="email" id="email" placeholder="rahul@example.com" class="p-4 md:p-5 rounded-2xl w-full bg-white/5 border border-white/10 text-white focus:outline-none focus:border-blue-500 transition-all" required>
+                </div>
+                <div class="flex flex-col gap-2 md:gap-3 md:col-span-2">
+                    <label class="text-[10px] md:text-xs font-bold uppercase tracking-widest text-gray-500 ml-2">Video Type</label>
+                    <select id="video-type" class="p-4 md:p-5 rounded-2xl w-full bg-white/5 border border-white/10 text-white focus:outline-none focus:border-blue-500 transition-all">
+                        <option>Instagram Reels / Shorts</option>
+                        <option>YouTube (Long Form)</option>
+                        <option>Sales / Commercial Ad</option>
+                        <option>Music Video / Creative</option>
+                        <option>Full Package (Monthly)</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-2 md:gap-3 md:col-span-2">
+                    <label class="text-[10px] md:text-xs font-bold uppercase tracking-widest text-gray-500 ml-2">Message</label>
+                    <textarea id="message" rows="4" placeholder="Share links or explain the project requirements..." class="p-4 md:p-5 rounded-2xl w-full bg-white/5 border border-white/10 text-white focus:outline-none focus:border-blue-500 transition-all"></textarea>
+                </div>
+
+                <div class="md:col-span-2">
+                    <button type="submit" class="w-full py-4 md:py-5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl font-bold text-lg md:text-xl hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-2">
+                        <i data-lucide="send" class="w-5 h-5"></i> Send to WhatsApp
+                    </button>
+                </div>
+            </form>
+            <div id="successMsg" class="hidden mt-10 p-6 bg-blue-500/20 border border-blue-500/50 rounded-2xl text-center">
+                <div class="text-blue-400 font-bold text-xl mb-2">Redirecting...</div>
+                <p class="text-blue-300/80">Taking you to WhatsApp to finish the inquiry.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 md:py-16 border-t border-white/5 text-center">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-2xl md:text-3xl font-extrabold mb-6 md:mb-8">H<span class="text-blue-500">.</span></div>
+            <div class="flex justify-center gap-6 mb-8 text-gray-500">
+                <a href="#" class="hover:text-blue-400 transition-colors"><i data-lucide="instagram"></i></a>
+                <a href="#" class="hover:text-blue-400 transition-colors"><i data-lucide="twitter"></i></a>
+                <a href="#" class="hover:text-blue-400 transition-colors"><i data-lucide="youtube"></i></a>
+            </div>
+            <p class="text-gray-600 text-xs md:text-sm">&copy; 2026  Harshal Edits. Pune, Maharashtra, India</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Lucide icons
+            lucide.createIcons();
+
+            // Reveal animations logic
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+            // Immediate reveal check for items already in viewport
+            setTimeout(() => {
+                document.querySelectorAll('.reveal').forEach(el => {
+                    const rect = el.getBoundingClientRect();
+                    if (rect.top < window.innerHeight) {
+                        el.classList.add('active');
+                    }
+                });
+            }, 100);
+
+            // Mobile Menu Toggle
+            const menuBtn = document.getElementById('menu-btn');
+            const mobileNav = document.getElementById('mobile-nav');
+            const menuIcon = document.getElementById('menu-icon');
+
+            menuBtn.addEventListener('click', () => {
+                const isOpen = mobileNav.classList.toggle('open');
+                menuBtn.innerHTML = isOpen ? '<i data-lucide="x"></i>' : '<i data-lucide="menu"></i>';
+                lucide.createIcons();
+            });
+
+            // Close mobile menu on link click
+            document.querySelectorAll('.mobile-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileNav.classList.remove('open');
+                    menuBtn.innerHTML = '<i data-lucide="menu"></i>';
+                    lucide.createIcons();
+                });
+            });
+
+            // Form Submission Handling for WhatsApp
+            document.getElementById('contactForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const name = document.getElementById('name').value;
+                const email = document.getElementById('email').value;
+                const videoType = document.getElementById('video-type').value;
+                const message = document.getElementById('message').value;
+
+                // Construction of WhatsApp URL
+                const phoneNumber = "918767505476";
+                const waText = `*New Portfolio Inquiry*%0A%0A*Name:* ${name}%0A*Email:* ${email}%0A*Type:* ${videoType}%0A*Message:* ${message}`;
+                const waUrl = `https://wa.me/${phoneNumber}?text=${waText}`;
+
+                this.style.opacity = '0.5';
+                this.style.pointerEvents = 'none';
+                
+                document.getElementById('successMsg').classList.remove('hidden');
+                
+                // Slight delay before redirecting for better UX
+                setTimeout(() => {
+                    window.open(waUrl, '_blank');
+                    this.style.opacity = '1';
+                    this.style.pointerEvents = 'all';
+                }, 800);
+            });
+        });
+
+        // Video mute toggle functionality
+        function toggleMute(btn) {
+            const video = btn.parentElement.querySelector('video');
+            video.muted = !video.muted;
+            
+            if (video.muted) {
+                btn.innerHTML = '<i data-lucide="volume-x" class="w-5 h-5"></i>';
+            } else {
+                btn.innerHTML = '<i data-lucide="volume-2" class="w-5 h-5"></i>';
+            }
+            // Re-initialize the icon that was just dynamically inserted
+            lucide.createIcons();
+        }
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const target = document.querySelector(targetId);
+                if (target) {
+                    window.scrollTo({
+                        top: target.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
